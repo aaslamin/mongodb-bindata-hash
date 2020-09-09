@@ -33,8 +33,8 @@ var (
 			}
 		},
 		zHashBinaryCollection: func(oid bson.ObjectId, zone int) Zonable {
-			var b [4]byte
-			binary.BigEndian.PutUint32(b[:], uint32(hash(oid.String())))
+			var b [8]byte
+			binary.BigEndian.PutUint64(b[:], uint64(hash(oid.String())))
 
 			return &ZHashBinary{
 				ID:   oid,
@@ -47,7 +47,7 @@ var (
 		},
 	}
 	workers        = runtime.GOMAXPROCS(0)
-	insertionCount = 10_000_000
+	insertionCount = 5_000_000
 )
 
 func main() {
@@ -116,6 +116,7 @@ func main() {
 
 	fmt.Println("INFO: waiting for workers...")
 	wg.Wait()
+	fmt.Println("INFO: workers finished, computing results...")
 	must(ensureIndexes(db, true))
 
 	collections, err := db.CollectionNames()
@@ -197,7 +198,7 @@ func ensureIndexes(db *mgo.Database, background bool) error {
 				"zone",
 				"zhash",
 			},
-			Unique:     false,
+			Unique:     true,
 			Background: background,
 		}); err != nil {
 			return fmt.Errorf("failed to create index on collection '%s': %s", coll, err)
